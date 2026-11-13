@@ -3,6 +3,7 @@ package com.comandadigital.api.exception;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -12,12 +13,13 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-// basePackages evita que este handler atrapado interfira no Swagger (/v3/api-docs).
+// basePackages evita que este handler interfira no Swagger (/v3/api-docs).
 @RestControllerAdvice(basePackages = "com.comandadigital.api.controller")
 public class GlobalExceptionHandler {
 
@@ -36,9 +38,29 @@ public class GlobalExceptionHandler {
         return resposta(HttpStatus.BAD_REQUEST, "Corpo da requisição inválido ou ausente", null);
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> parametroInvalido(MethodArgumentTypeMismatchException ex) {
+        return resposta(HttpStatus.BAD_REQUEST, "Parâmetro inválido: " + ex.getName(), null);
+    }
+
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<ApiError> ordenacaoInvalida(PropertyReferenceException ex) {
+        return resposta(HttpStatus.BAD_REQUEST, "Campo de ordenação inválido: " + ex.getPropertyName(), null);
+    }
+
     @ExceptionHandler(EmailJaCadastradoException.class)
     public ResponseEntity<ApiError> emailDuplicado(EmailJaCadastradoException ex) {
         return resposta(HttpStatus.CONFLICT, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(RegraDeNegocioException.class)
+    public ResponseEntity<ApiError> regraDeNegocio(RegraDeNegocioException ex) {
+        return resposta(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), ex.getDetalhes());
+    }
+
+    @ExceptionHandler(RecursoNaoEncontradoException.class)
+    public ResponseEntity<ApiError> naoEncontrado(RecursoNaoEncontradoException ex) {
+        return resposta(HttpStatus.NOT_FOUND, ex.getMessage(), null);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -63,7 +85,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ApiError> naoEncontrado(NoResourceFoundException ex) {
+    public ResponseEntity<ApiError> rotaInexistente(NoResourceFoundException ex) {
         return resposta(HttpStatus.NOT_FOUND, "Recurso não encontrado", null);
     }
 
