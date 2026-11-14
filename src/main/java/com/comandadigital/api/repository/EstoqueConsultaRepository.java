@@ -60,4 +60,35 @@ public class EstoqueConsultaRepository {
         for (SaldoLinha l : linhas) mapa.put(l.ingredienteId(), l.saldo());
         return mapa;
     }
+
+    /** Registra uma movimentacao do estoque (SAIDA na confirmacao da venda, ESTORNO no cancelamento). */
+    public void registrarMovimentacao(Long ingredienteId, String tipo, BigDecimal quantidade, String motivo,
+                                      Long pedidoId, Long usuarioId) {
+        jdbc.update("""
+                INSERT INTO estoque_movimentacao (ingrediente_id, tipo, quantidade, motivo, pedido_id, usuario_id)
+                VALUES (:ing, :tipo, :qtd, :motivo, :pedido, :usuario)
+                """, new org.springframework.jdbc.core.namedparam.MapSqlParameterSource()
+                .addValue("ing", ingredienteId).addValue("tipo", tipo).addValue("qtd", quantidade)
+                .addValue("motivo", motivo).addValue("pedido", pedidoId).addValue("usuario", usuarioId));
+    }
+
+    /** Movimentacoes de SAIDA ja feitas por um pedido (para estornar exatamente o que saiu). */
+    public Map<Long, BigDecimal> saidasDoPedido(Long pedidoId) {
+        List<SaldoLinha> linhas = jdbc.query("""
+                SELECT ingrediente_id, SUM(quantidade) AS saldo FROM estoque_movimentacao
+                WHERE pedido_id = :id AND tipo = 'SAIDA' AND motivo = 'VENDA'
+                GROUP BY ingrediente_id
+                """, Map.of("id", pedidoId),
+                (rs, n) -> new SaldoLinha(rs.getLong("ingrediente_id"), rs.getBigDecimal("saldo")));
+        Map<Long, BigDecimal> mapa = new HashMap<>();
+        for (SaldoLinha l : linhas) mapa.put(l.ingredienteId(), l.saldo());
+        return mapa;
+    }
+
+    /** Estornos ja feitos por um pedido (evita estornar duas vezes). */
+    public boolean jaEstornado(Long pedidoId) {
+        Integer n = jdbc.queryForObject("SELECT COUNT(*) FROM estoque_movimentacao WHERE pedido_id = :id AND tipo = 'ESTORNO'",
+                Map.of("id", pedidoId), Integer.class);
+        return n != null && n > 0;
+    }
 }

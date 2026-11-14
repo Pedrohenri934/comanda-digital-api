@@ -25,4 +25,16 @@ public interface PratoRepository extends JpaRepository<Prato, Long> {
     Optional<Prato> findByIdAndStatus(Long id, StatusPrato status);
 
     List<Prato> findByIdIn(Collection<Long> ids);
+
+    // ---- admin: lista todos os pratos (qualquer status), opcionalmente por status
+    @EntityGraph(attributePaths = "categoria")
+    Page<Prato> findAllBy(Pageable pageable);
+
+    @EntityGraph(attributePaths = "categoria")
+    Page<Prato> findByStatus(StatusPrato status, Pageable pageable);
+
+    @EntityGraph(attributePaths = "categoria")
+    Optional<Prato> findWithCategoriaById(Long id);
+
+    boolean existsByCategoriaIdAndStatus(Long categoriaId, StatusPrato status);
 }
