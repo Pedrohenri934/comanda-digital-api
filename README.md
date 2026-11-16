@@ -19,6 +19,9 @@ Back-end do sistema **Comanda Digital** para Dark Kitchen — Trabalho Final de 
 | Gerente | gerente@email.com | senha123 |
 | Cozinha | cozinha@email.com | senha123 |
 | Cliente | criar conta pela tela de cadastro | — |
+| Entregador | carlos@entrega.com | 123456 |
+| Entregador | ana@entrega.com | 123456 |
+| Entregador (pendente) | joao@entrega.com | 123456 |
 
 ## Tecnologias
 
