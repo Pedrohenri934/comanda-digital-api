@@ -40,7 +40,8 @@ public class DashboardService {
         Resumo r = repo.resumo(inicio);
         BigDecimal ticket = r.vendas() == 0 ? BigDecimal.ZERO
                 : r.faturamento().divide(BigDecimal.valueOf(r.vendas()), 2, RoundingMode.HALF_UP);
-        Totais totais = new Totais(r.pedidos(), r.vendas(), r.cancelados(), repo.pedidosAbertos(), r.faturamento(), ticket);
+        Totais totais = new Totais(r.pedidos(), r.vendas(), r.cancelados(), repo.pedidosAbertos(), r.faturamento(), ticket,
+                foodCostMedio(inicio));
 
         // Preenche com zero os dias sem venda, para o grafico nao ter buracos.
         Map<LocalDate, VendaDia> porData = new HashMap<>();
@@ -55,5 +56,22 @@ public class DashboardService {
                 .filter(i -> i.abaixoDoMinimo() && "ATIVO".equals(i.status())).toList();
 
         return new DashboardResponse(dias, totais, repo.pedidosPorStatus(inicio), serie, repo.maisVendidos(inicio, 5), baixo);
+    }
+
+    /** Food cost medio ponderado pelo que foi vendido: soma(custo x qtd) / soma(receita) x 100. Null se nao houver dado. */
+    private BigDecimal foodCostMedio(Timestamp inicio) {
+        List<DashboardJdbcRepository.VendaPrato> vendas = repo.vendasPorPrato(inicio);
+        if (vendas.isEmpty()) return null;
+        Map<Long, BigDecimal> custos = cadastro.custosPorPrato(vendas.stream().map(DashboardJdbcRepository.VendaPrato::pratoId).toList());
+        BigDecimal custoTotal = BigDecimal.ZERO;
+        BigDecimal receitaTotal = BigDecimal.ZERO;
+        for (DashboardJdbcRepository.VendaPrato v : vendas) {
+            BigDecimal c = custos.get(v.pratoId());
+            if (c == null) continue; // prato sem ficha tecnica nao entra na conta
+            custoTotal = custoTotal.add(c.multiply(BigDecimal.valueOf(v.quantidade())));
+            receitaTotal = receitaTotal.add(v.receita());
+        }
+        if (receitaTotal.signum() == 0) return null;
+        return custoTotal.multiply(BigDecimal.valueOf(100)).divide(receitaTotal, 2, RoundingMode.HALF_UP);
     }
 }

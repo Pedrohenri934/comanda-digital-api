@@ -231,8 +231,12 @@ public class CadastroAdminService {
         BigDecimal custo = jdbc.custosPorPrato(List.of(p.getId())).get(p.getId());
         BigDecimal foodCost = (custo == null || p.getPrecoVenda().signum() == 0) ? null
                 : custo.multiply(BigDecimal.valueOf(100)).divide(p.getPrecoVenda(), 2, RoundingMode.HALF_UP);
+        // RN02: food cost acima de 35% nao bloqueia, mas gera aviso para a gerencia revisar o preco.
+        String aviso = (foodCost != null && foodCost.compareTo(BigDecimal.valueOf(35)) > 0)
+                ? "Atenção: o food cost está em " + foodCost.toPlainString() + "%, acima do limite de 35%. Revise o preço de venda ou a ficha técnica."
+                : null;
         return new FichaResponse(p.getId(), f.rendimento(), f.modoPreparo(), itens,
-                custo == null ? null : custo.setScale(2, RoundingMode.HALF_UP), p.getPrecoVenda(), foodCost);
+                custo == null ? null : custo.setScale(2, RoundingMode.HALF_UP), p.getPrecoVenda(), foodCost, aviso);
     }
 
     private static boolean compativeis(String a, String b) {

@@ -59,5 +59,6 @@ public final class AdminDtos {
                                     BigDecimal fatorCorrecao, BigDecimal custoLinha) {}
 
     public record FichaResponse(Long pratoId, Integer rendimento, String modoPreparo, List<FichaItemResponse> itens,
-                                BigDecimal custoPorPorcao, BigDecimal precoVenda, BigDecimal foodCost) {}
+                                BigDecimal custoPorPorcao, BigDecimal precoVenda, BigDecimal foodCost,
+                                String aviso) {}
 }

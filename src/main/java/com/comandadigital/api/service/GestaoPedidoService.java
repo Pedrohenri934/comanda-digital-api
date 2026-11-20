@@ -12,10 +12,14 @@ import com.comandadigital.api.model.Usuario;
 import com.comandadigital.api.repository.PedidoRepository;
 import com.comandadigital.api.repository.UsuarioRepository;
 import org.springframework.data.domain.Page;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,11 +57,20 @@ public class GestaoPedidoService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PedidoGestaoResponse> listar(List<StatusPedido> status, Pageable pageable) {
-        Page<Pedido> pagina = (status == null || status.isEmpty())
-                ? pedidoRepository.findAll(pageable)
-                : pedidoRepository.findByStatusIn(status, pageable);
-        return pagina.map(PedidoGestaoResponse::from);
+    public Page<PedidoGestaoResponse> listar(List<StatusPedido> status, LocalDate de, LocalDate ate, String canal,
+                                             Pageable pageable) {
+        if (de != null && ate != null && ate.isBefore(de)) {
+            throw new RegraDeNegocioException("A data final não pode ser anterior à data inicial");
+        }
+        Specification<Pedido> spec = (root, query, cb) -> {
+            List<Predicate> ps = new ArrayList<>();
+            if (status != null && !status.isEmpty()) ps.add(root.get("status").in(status));
+            if (de != null) ps.add(cb.greaterThanOrEqualTo(root.get("createdAt"), de.atStartOfDay()));
+            if (ate != null) ps.add(cb.lessThan(root.get("createdAt"), ate.plusDays(1).atStartOfDay()));
+            if (canal != null && !canal.isBlank()) ps.add(cb.equal(root.get("canal"), canal.trim().toUpperCase()));
+            return cb.and(ps.toArray(new Predicate[0]));
+        };
+        return pedidoRepository.findAll(spec, pageable).map(PedidoGestaoResponse::from);
     }
 
     @Transactional(readOnly = true)
@@ -81,9 +94,9 @@ public class GestaoPedidoService {
         }
 
         if (novo == CANCELADO) {
-            // Cozinheiro nao cancela: so gerencia (RF-018).
-            if (usuario.getPerfil() == Perfil.COZINHEIRO) {
-                throw new RegraDeNegocioException("Somente gerente ou administrador pode cancelar pedidos");
+            // RN04: cozinheiro so cancela antes do preparo (RECEBIDO ou CONFIRMADO); depois, so gerente/admin.
+            if (usuario.getPerfil() == Perfil.COZINHEIRO && atual != RECEBIDO && atual != CONFIRMADO) {
+                throw new RegraDeNegocioException("Após o início do preparo, somente gerente ou administrador pode cancelar o pedido");
             }
             if (req.motivo() == null || req.motivo().isBlank()) {
                 throw new RegraDeNegocioException("Informe o motivo do cancelamento");
@@ -95,11 +108,7 @@ public class GestaoPedidoService {
 
         if (novo == CONFIRMADO) {
             // Confere de novo (o estoque pode ter mudado desde a criacao) e da baixa. Falta de insumo -> 422.
-            Map<Long, Integer> qtdPorPrato = new LinkedHashMap<>();
-            for (PedidoItem item : pedido.getItens()) {
-                qtdPorPrato.merge(item.getPrato().getId(), item.getQuantidade(), Integer::sum);
-            }
-            estoqueService.darBaixa(pedido.getId(), usuario.getId(), qtdPorPrato);
+            estoqueService.darBaixa(pedido.getId(), usuario.getId(), pedido.consumoPorPrato());
         }
 
         pedido.setStatus(novo);

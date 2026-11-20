@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 
 @Entity
@@ -64,6 +66,18 @@ public class Pedido {
     public void adicionarItem(PedidoItem item) {
         item.setPedido(this);
         itens.add(item);
+    }
+
+    /** Quantas porcoes de cada prato o pedido consome do estoque: os itens mais as opcoes escolhidas nos combos. */
+    public Map<Long, Integer> consumoPorPrato() {
+        Map<Long, Integer> mapa = new LinkedHashMap<>();
+        for (PedidoItem i : itens) {
+            mapa.merge(i.getPrato().getId(), i.getQuantidade(), Integer::sum);
+            for (PedidoItemOpcao o : i.getOpcoes()) {
+                if (o.getPratoId() != null) mapa.merge(o.getPratoId(), i.getQuantidade(), Integer::sum);
+            }
+        }
+        return mapa;
     }
 
     public Long getId() { return id; }

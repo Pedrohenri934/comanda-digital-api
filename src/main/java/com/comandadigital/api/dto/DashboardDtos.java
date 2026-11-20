@@ -10,7 +10,7 @@ public final class DashboardDtos {
     private DashboardDtos() {}
 
     public record Totais(long pedidos, long vendas, long cancelados, long pedidosAbertos,
-                         BigDecimal faturamento, BigDecimal ticketMedio) {}
+                         BigDecimal faturamento, BigDecimal ticketMedio, BigDecimal foodCostMedio) {}
 
     public record StatusQtd(String status, long quantidade) {}
 

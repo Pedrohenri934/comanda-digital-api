@@ -3,6 +3,8 @@ package com.comandadigital.api.model;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "pedido_item")
@@ -28,6 +30,12 @@ public class PedidoItem {
 
     @Column(length = 255)
     private String observacoes;
+
+    @OneToMany(mappedBy = "pedidoItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PedidoItemOpcao> opcoes = new ArrayList<>();
+
+    public void adicionarOpcao(PedidoItemOpcao o) { o.setPedidoItem(this); opcoes.add(o); }
+    public List<PedidoItemOpcao> getOpcoes() { return opcoes; }
 
     public Long getId() { return id; }
     public Pedido getPedido() { return pedido; }

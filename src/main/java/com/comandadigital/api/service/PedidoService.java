@@ -27,9 +27,11 @@ public class PedidoService {
     private final PratoRepository pratoRepository;
     private final UsuarioRepository usuarioRepository;
     private final EstoqueService estoqueService;
+    private final ComboService comboService;
 
     public PedidoService(PedidoRepository pedidoRepository, PratoRepository pratoRepository,
-                         UsuarioRepository usuarioRepository, EstoqueService estoqueService) {
+                         UsuarioRepository usuarioRepository, EstoqueService estoqueService, ComboService comboService) {
+        this.comboService = comboService;
         this.pedidoRepository = pedidoRepository;
         this.pratoRepository = pratoRepository;
         this.usuarioRepository = usuarioRepository;
@@ -68,8 +70,6 @@ public class PedidoService {
             throw new RegraDeNegocioException("Informe o endereço de entrega");
         }
 
-        estoqueService.validar(qtdPorPrato);
-
         Pedido pedido = new Pedido();
         pedido.setCliente(cliente);
         pedido.setStatus(StatusPedido.RECEBIDO);
@@ -84,12 +84,19 @@ public class PedidoService {
             PedidoItem pi = new PedidoItem();
             pi.setPrato(prato);
             pi.setQuantidade(item.quantidade());
-            pi.setPrecoUnitario(prato.getPrecoVenda());
             pi.setObservacoes(item.observacoes());
+            // Combos: confere as escolhas; o acrescimo (ex.: batata grande) entra no preco unitario do item.
+            ComboService.Escolha escolha = comboService.conferir(prato.getId(), prato.getNome(), item.opcoes());
+            escolha.opcoes().forEach(pi::adicionarOpcao);
+            BigDecimal precoItem = prato.getPrecoVenda().add(escolha.acrescimo());
+            pi.setPrecoUnitario(precoItem);
             pedido.adicionarItem(pi);
-            total = total.add(prato.getPrecoVenda().multiply(BigDecimal.valueOf(item.quantidade())));
+            total = total.add(precoItem.multiply(BigDecimal.valueOf(item.quantidade())));
         }
         pedido.setValorTotal(total);
+
+        // RN03: confere o estoque dos itens e das opcoes escolhidas.
+        estoqueService.validar(pedido.consumoPorPrato());
 
         pedidoRepository.save(pedido);
         return PedidoResponse.from(pedido);

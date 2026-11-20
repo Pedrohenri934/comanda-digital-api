@@ -1,0 +1,98 @@
+erDiagram
+    usuario ||--o{ pedido : "cliente faz"
+    usuario ||--o{ pedido : "entregador entrega"
+    usuario ||--o| entregador : "perfil"
+    usuario ||--o{ pedido_compra : "registra"
+    usuario ||--o{ estoque_movimentacao : "registra"
+    categoria ||--o{ prato : "agrupa"
+    prato ||--o| ficha_tecnica : "tem"
+    ficha_tecnica ||--|{ ficha_tecnica_item : "contem"
+    ingrediente ||--o{ ficha_tecnica_item : "usado em"
+    prato ||--o{ pedido_item : "vendido em"
+    prato ||--o{ cardapio_semana : "oferecido em"
+    pedido ||--|{ pedido_item : "possui"
+    pedido ||--o{ estoque_movimentacao : "gera baixa/estorno"
+    ingrediente ||--o{ estoque_movimentacao : "movimenta"
+    fornecedor ||--o{ fornecedor_produto : "vende"
+    ingrediente ||--o{ fornecedor_produto : "cotado em"
+    fornecedor ||--o{ pedido_compra : "recebe"
+    pedido_compra ||--|{ pedido_compra_item : "possui"
+    ingrediente ||--o{ pedido_compra_item : "comprado em"
+    pedido_compra ||--o{ estoque_movimentacao : "entrada por compra"
+    usuario { bigint id PK
+      string nome
+      string email UK
+      string perfil
+      string status }
+    entregador { bigint usuario_id PK
+      string veiculo
+      string placa
+      string status_cadastro
+      boolean disponivel }
+    categoria { bigint id PK
+      string nome
+      int ordem
+      string status }
+    prato { bigint id PK
+      bigint categoria_id FK
+      string nome
+      string foto_url
+      decimal preco_venda
+      string status }
+    ficha_tecnica { bigint id PK
+      bigint prato_id FK
+      int rendimento }
+    ficha_tecnica_item { bigint id PK
+      bigint ficha_tecnica_id FK
+      bigint ingrediente_id FK
+      decimal quantidade
+      decimal fator_correcao }
+    ingrediente { bigint id PK
+      string nome
+      string sku UK
+      string unidade_padrao
+      decimal estoque_minimo
+      decimal custo_unitario }
+    cardapio_semana { bigint id PK
+      tinyint dia_semana
+      bigint prato_id FK
+      boolean destaque }
+    pedido { bigint id PK
+      bigint cliente_id FK
+      bigint entregador_id FK
+      string status
+      decimal valor_total
+      string canal
+      boolean pago }
+    pedido_item { bigint id PK
+      bigint pedido_id FK
+      bigint prato_id FK
+      int quantidade
+      decimal preco_unitario }
+    estoque_movimentacao { bigint id PK
+      bigint ingrediente_id FK
+      string tipo
+      decimal quantidade
+      string motivo
+      string lote
+      date validade
+      bigint pedido_id FK
+      bigint pedido_compra_id FK }
+    fornecedor { bigint id PK
+      string razao_social
+      string cnpj UK
+      string status }
+    fornecedor_produto { bigint id PK
+      bigint fornecedor_id FK
+      bigint ingrediente_id FK
+      decimal preco }
+    pedido_compra { bigint id PK
+      bigint fornecedor_id FK
+      bigint usuario_id FK
+      string status
+      decimal valor_total }
+    pedido_compra_item { bigint id PK
+      bigint pedido_compra_id FK
+      bigint ingrediente_id FK
+      decimal quantidade
+      decimal preco_unitario }

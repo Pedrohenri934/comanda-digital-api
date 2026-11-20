@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 /** Cardapio publico: so pratos ATIVOS de categorias ativas (RN09). */
 @Service
@@ -20,10 +21,12 @@ public class CardapioService {
 
     private final PratoRepository pratoRepository;
     private final CategoriaRepository categoriaRepository;
+    private final ComboService comboService;
 
-    public CardapioService(PratoRepository pratoRepository, CategoriaRepository categoriaRepository) {
+    public CardapioService(PratoRepository pratoRepository, CategoriaRepository categoriaRepository, ComboService comboService) {
         this.pratoRepository = pratoRepository;
         this.categoriaRepository = categoriaRepository;
+        this.comboService = comboService;
     }
 
     @Transactional(readOnly = true)
@@ -32,13 +35,14 @@ public class CardapioService {
                 ? pratoRepository.findByStatusAndCategoriaStatus(StatusPrato.ATIVO, StatusRegistro.ATIVO, pageable)
                 : pratoRepository.findByStatusAndCategoriaStatusAndCategoriaId(
                         StatusPrato.ATIVO, StatusRegistro.ATIVO, categoriaId, pageable);
-        return pagina.map(PratoResponse::from);
+        Set<Long> comOpcoes = comboService.pratosComOpcoes(pagina.getContent().stream().map(com.comandadigital.api.model.Prato::getId).toList());
+        return pagina.map(p -> PratoResponse.from(p, comOpcoes.contains(p.getId())));
     }
 
     @Transactional(readOnly = true)
     public PratoResponse detalhe(Long id) {
         return pratoRepository.findByIdAndStatus(id, StatusPrato.ATIVO)
-                .map(PratoResponse::from)
+                .map(p -> PratoResponse.from(p, !comboService.listar(p.getId()).isEmpty()))
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Prato não encontrado"));
     }
 

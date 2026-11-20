@@ -63,6 +63,19 @@ public class DashboardJdbcRepository {
                 (rs, n) -> new VendaDia(rs.getDate("dia").toLocalDate(), rs.getLong("pedidos"), rs.getBigDecimal("faturamento")));
     }
 
+    public record VendaPrato(long pratoId, long quantidade, BigDecimal receita) {}
+
+    /** Quantidade e receita por prato nas vendas do periodo (base do food cost medio ponderado). */
+    public List<VendaPrato> vendasPorPrato(Timestamp inicio) {
+        return jdbc.query("""
+                SELECT i.prato_id AS prato_id, SUM(i.quantidade) AS qtd, SUM(i.quantidade * i.preco_unitario) AS receita
+                FROM pedido_item i JOIN pedido o ON o.id = i.pedido_id
+                WHERE o.created_at >= :ini AND o.status IN %s
+                GROUP BY i.prato_id
+                """.formatted(VENDA), desde(inicio),
+                (rs, n) -> new VendaPrato(rs.getLong("prato_id"), rs.getLong("qtd"), rs.getBigDecimal("receita")));
+    }
+
     public List<MaisVendido> maisVendidos(Timestamp inicio, int limite) {
         return jdbc.query("""
                 SELECT p.nome AS prato, SUM(i.quantidade) AS qtd, SUM(i.quantidade * i.preco_unitario) AS receita

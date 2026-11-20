@@ -19,9 +19,6 @@ Back-end do sistema **Comanda Digital** para Dark Kitchen — Trabalho Final de 
 | Gerente | gerente@email.com | senha123 |
 | Cozinha | cozinha@email.com | senha123 |
 | Cliente | criar conta pela tela de cadastro | — |
-| Entregador | carlos@entrega.com | 123456 |
-| Entregador | ana@entrega.com | 123456 |
-| Entregador (pendente) | joao@entrega.com | 123456 |
 
 ## Tecnologias
 
@@ -36,11 +33,19 @@ Back-end do sistema **Comanda Digital** para Dark Kitchen — Trabalho Final de 
 
 - **RN03:** pedido só é aceito com estoque suficiente (erro 422 lista os ingredientes em falta).
 - Baixa de estoque ao **confirmar** o pedido; **estorno** ao cancelar um pedido já confirmado.
-- Cancelamento exige motivo e não é permitido ao perfil Cozinha.
+- **RN04:** cancelamento exige motivo; a Cozinha só cancela pedidos RECEBIDO/CONFIRMADO (depois do preparo, só Gerente/Admin).
+- **RN02:** food cost acima de 35% gera aviso na ficha técnica (não bloqueia).
+- **Combos com escolhas:** o combo tem grupos (ex.: Bebida, Sobremesa, Tamanho da batata) com mínimo/máximo de opções e acréscimo de preço; a escolha do cliente é gravada no item do pedido e dá baixa no estoque. Admin edita em `/api/admin/pratos/{id}/opcoes`; o cardápio público lista em `/api/cardapio/{id}/opcoes`.
 - **RN06:** exclusão lógica (status INATIVO).
 - Prato só fica ativo com ficha técnica e categoria ativa.
 - Compras: RASCUNHO → ENVIADO → RECEBIDO/CANCELADO; ao receber, entram movimentações de estoque.
-- Dashboard: faturamento, ticket médio, pratos mais vendidos, estoque abaixo do mínimo.
+- Dashboard: faturamento, ticket médio, food cost médio, pratos mais vendidos, estoque abaixo do mínimo.
+
+## Modelo de dados (DER)
+
+![DER](docs/DER.png)
+
+(Código-fonte do diagrama em `docs/DER.mmd`.)
 
 ## Como rodar localmente
 
