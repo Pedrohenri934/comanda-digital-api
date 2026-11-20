@@ -62,6 +62,12 @@ public class CompraAdminController {
         return service.atualizarCompra(id, r);
     }
 
+    /** Atalho do SRS: marca a compra como RECEBIDA (da entrada no estoque). */
+    @PatchMapping("/compras/{id}/receber")
+    public CompraResponse receber(@PathVariable Long id, Authentication auth) {
+        return service.alterarStatus(id, "RECEBIDO", auth.getName());
+    }
+
     /** RASCUNHO > ENVIADO > RECEBIDO (da entrada no estoque) ou CANCELADO. */
     @PatchMapping("/compras/{id}/status")
     public CompraResponse alterarStatus(@PathVariable Long id, @Valid @RequestBody CompraStatusRequest r, Authentication auth) {

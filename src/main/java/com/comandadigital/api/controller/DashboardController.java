@@ -21,7 +21,7 @@ public class DashboardController {
     }
 
     /** ?dias=7 (padrao), de 1 a 90. */
-    @GetMapping
+    @GetMapping({"", "/resumo"})
     public DashboardResponse dashboard(@RequestParam(defaultValue = "7") int dias) {
         return service.montar(dias);
     }

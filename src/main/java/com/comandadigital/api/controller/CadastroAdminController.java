@@ -86,7 +86,7 @@ public class CadastroAdminController {
 
     // ------------------------------------------------------------ ficha tecnica
 
-    @GetMapping("/pratos/{id}/ficha")
+    @GetMapping({"/pratos/{id}/ficha", "/pratos/{id}/custo"})
     public FichaResponse buscarFicha(@PathVariable Long id) { return service.buscarFicha(id); }
 
     @PutMapping("/pratos/{id}/ficha")

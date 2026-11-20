@@ -20,7 +20,7 @@ import java.util.List;
 
 /** Pedidos vistos pela cozinha e pela gerencia. Cliente nao acessa (403). */
 @RestController
-@RequestMapping("/api/gestao/pedidos")
+@RequestMapping({"/api/gestao/pedidos", "/api/admin/pedidos"})
 @PreAuthorize("hasAnyRole('ADMIN','GERENTE','COZINHEIRO')")
 public class GestaoPedidoController {
 
@@ -47,6 +47,14 @@ public class GestaoPedidoController {
     }
 
     /** Avanca ou cancela o pedido. Cancelar exige "motivo"; cozinheiro so cancela RECEBIDO/CONFIRMADO (RN04). */
+    /** Atalho do SRS: PATCH /{id}/cancelar com {"motivo": "..."}. */
+    @PatchMapping("/{id}/cancelar")
+    public PedidoGestaoResponse cancelar(@PathVariable Long id, @RequestBody(required = false) java.util.Map<String, String> corpo,
+                                         Authentication authentication) {
+        String motivo = corpo == null ? null : corpo.get("motivo");
+        return service.alterarStatus(id, new AlterarStatusRequest(StatusPedido.CANCELADO, motivo), authentication.getName());
+    }
+
     @PatchMapping("/{id}/status")
     public PedidoGestaoResponse alterarStatus(@PathVariable Long id, @Valid @RequestBody AlterarStatusRequest req,
                                               Authentication authentication) {
