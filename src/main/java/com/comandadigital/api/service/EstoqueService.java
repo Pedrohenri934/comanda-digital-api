@@ -7,10 +7,13 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Regras de estoque ligadas a venda: conferir (RN03), dar baixa e estornar. */
 @Service
@@ -40,6 +43,36 @@ public class EstoqueService {
             info.putIfAbsent(f.ingredienteId(), f);
         }
         return new Consumo(necessario, info);
+    }
+
+    /**
+     * Pratos que nao podem ser feitos agora: falta algum ingrediente da ficha tecnica para ao menos 1 porcao.
+     * Pratos sem ficha tecnica nao entram (nao ha o que conferir). Usado para esconder o prato do cardapio.
+     */
+    public Set<Long> pratosSemEstoque(Collection<Long> pratoIds) {
+        if (pratoIds.isEmpty()) return Set.of();
+        List<FichaLinha> fichas = repo.fichas(pratoIds);
+        if (fichas.isEmpty()) return Set.of();
+        Map<Long, BigDecimal> saldos = repo.saldos(fichas.stream().map(FichaLinha::ingredienteId).distinct().toList());
+
+        // consumo de 1 porcao, por prato e por ingrediente
+        Map<Long, Map<Long, BigDecimal>> porPrato = new HashMap<>();
+        for (FichaLinha f : fichas) {
+            BigDecimal consumo = f.quantidade().multiply(f.fatorCorrecao())
+                    .divide(BigDecimal.valueOf(Math.max(f.rendimento(), 1)), 4, RoundingMode.HALF_UP);
+            consumo = paraUnidadePadrao(consumo, f.unidadeItem(), f.unidadePadrao());
+            porPrato.computeIfAbsent(f.pratoId(), k -> new HashMap<>()).merge(f.ingredienteId(), consumo, BigDecimal::add);
+        }
+        Set<Long> semEstoque = new HashSet<>();
+        for (Map.Entry<Long, Map<Long, BigDecimal>> p : porPrato.entrySet()) {
+            for (Map.Entry<Long, BigDecimal> ing : p.getValue().entrySet()) {
+                if (saldos.getOrDefault(ing.getKey(), BigDecimal.ZERO).compareTo(ing.getValue()) < 0) {
+                    semEstoque.add(p.getKey());
+                    break;
+                }
+            }
+        }
+        return semEstoque;
     }
 
     /** RN03: se faltar ingrediente, lanca 422 listando o que falta. */
