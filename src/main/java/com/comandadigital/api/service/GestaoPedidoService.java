@@ -40,7 +40,8 @@ public class GestaoPedidoService {
             RECEBIDO,     EnumSet.of(CONFIRMADO, CANCELADO),
             CONFIRMADO,   EnumSet.of(EM_PREPARO, CANCELADO),
             EM_PREPARO,   EnumSet.of(PRONTO, CANCELADO),
-            PRONTO,       EnumSet.of(SAIU_ENTREGA, CANCELADO),
+            // PRONTO > SAIU_ENTREGA so acontece quando um entregador aceita (painel do entregador), para o pedido ter dono.
+            PRONTO,       EnumSet.of(CANCELADO),
             SAIU_ENTREGA, EnumSet.of(FINALIZADO),
             FINALIZADO,   EnumSet.noneOf(StatusPedido.class),
             CANCELADO,    EnumSet.noneOf(StatusPedido.class));
